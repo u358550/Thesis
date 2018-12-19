@@ -1,0 +1,450 @@
+
+# Install and read libraries
+install.packages("timeSeries")
+install.packages("DataExplorer") 
+install.packages("Graphics") 
+install.packages("ggplot2")
+install.packages("lubridate")
+install.packages("dplyr")
+install.packages("timeDate")
+install.packages("data.table")
+
+library(DataExplorer)
+library(graphics)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(timeSeries)
+library(timeDate)
+library(data.table)
+
+# Read datasets
+Data_NS_chekin_jaarbeurs_1 <- read.csv(header = TRUE, sep = ";")
+Data_NS_chekin_jaarbeurs_2 <- read.csv(header = TRUE, sep = ";")
+
+Data_NS_chekin_stations_1 <- read.csv(header = TRUE, sep = ";")
+Data_NS_chekin_stations_2 <- read.csv(header = TRUE, sep = ";")
+
+# Combine datasets
+Data_NS_chekin_jaarbeurs_total <- rbind(Data_NS_chekin_jaarbeurs_1, Data_NS_chekin_jaarbeurs_2)
+Data_NS_chekin_stations_total<- rbind(Data_NS_chekin_stations_1,Data_NS_chekin_stations_2)
+
+# Check for NA's 
+sum(is.na(Data_NS_chekin_jaarbeurs_total)) 
+sum(is.na(Data_NS_chekin_stations_total)) 
+
+# Delete records with storage time of less than 5 minutes
+Data_NS_chekin_stations_total<- Data_NS_chekin_stations_total[which(Data_NS_chekin_stations_total$Totale.stallingstijd..seconden. >= 300),]
+Data_NS_chekin_jaarbeurs_total<- Data_NS_chekin_jaarbeurs_total[which(Data_NS_chekin_jaarbeurs_total$Totale.stallingstijd..seconden. >= 300),]
+
+
+# Add feature: User type based on period of parking
+Data_NS_chekin_jaarbeurs_total$User_type <- case_when(Data_NS_chekin_jaarbeurs_total$Totale.stallingstijd..seconden. <= 18000 ~ "Short-use", 
+                                                Data_NS_chekin_jaarbeurs_total$Totale.stallingstijd..seconden. >= 18000 &  Data_NS_chekin_jaarbeurs_total$Totale.stallingstijd..seconden. <= 54000 & Data_NS_chekin_jaarbeurs_total$Startuurnr >= 5 & Data_NS_chekin_jaarbeurs_total$Startuurnr <= 10  & Data_NS_chekin_jaarbeurs_total$Einduurnr >= 13 & Data_NS_chekin_jaarbeurs_total$Einduurnr <= 23 ~ "Home-side",
+                                                Data_NS_chekin_jaarbeurs_total$Einduurnr >= 7 & Data_NS_chekin_jaarbeurs_total$Einduurnr <= 10 & Data_NS_chekin_jaarbeurs_total$Startuurnr >= 13 & Data_NS_chekin_jaarbeurs_total$Startuurnr <= 23 & Data_NS_chekin_jaarbeurs_total$Totale.stallingstijd..seconden. >= 18000 & Data_NS_chekin_jaarbeurs_total$Totale.stallingstijd..seconden. <= 54000 ~ "Activity-side",
+                                                Data_NS_chekin_jaarbeurs_total$Totale.stallingstijd..seconden. >= 54000 ~ "Long-term",
+                                                Data_NS_chekin_jaarbeurs_total$Totale.stallingstijd..seconden. >= 18000 & Data_NS_chekin_jaarbeurs_total$Startuurnr >= 14 & Data_NS_chekin_jaarbeurs_total$Startuurnr <= 18  & Data_NS_chekin_jaarbeurs_total$Einduurnr >= 21 | Data_NS_chekin_jaarbeurs_total$Einduurnr == 22 | Data_NS_chekin_jaarbeurs_total$Einduurnr == 23 | Data_NS_chekin_jaarbeurs_total$Einduurnr == 0 | Data_NS_chekin_jaarbeurs_total$Einduurnr == 1 ~ "Evening-users",
+                                                Data_NS_chekin_jaarbeurs_total$Totale.stallingstijd..seconden. <= 54000 ~ "Other"
+)
+
+Data_NS_chekin_stations_total$User_type <- case_when(Data_NS_chekin_stations_total$Totale.stallingstijd..seconden. <= 18000 ~ "Short-use", 
+                                               Data_NS_chekin_stations_total$Totale.stallingstijd..seconden. >= 18000 & Data_NS_chekin_stations_total$Totale.stallingstijd..seconden. <= 54000 & Data_NS_chekin_stations_total$Startuurnr >= 5 & Data_NS_chekin_stations_total$Startuurnr <= 10  & Data_NS_chekin_stations_total$Einduurnr >= 13 & Data_NS_chekin_stations_total$Einduurnr <= 23 ~ "Home-side",
+                                               Data_NS_chekin_stations_total$Einduurnr >= 7 & Data_NS_chekin_stations_total$Einduurnr <= 10 & Data_NS_chekin_stations_total$Startuurnr >= 13 & Data_NS_chekin_stations_total$Startuurnr <= 23 & Data_NS_chekin_stations_total$Totale.stallingstijd..seconden. >= 18000 & Data_NS_chekin_stations_total$Totale.stallingstijd..seconden. <= 54000 ~ "Activity-side",
+                                               Data_NS_chekin_stations_total$Totale.stallingstijd..seconden. >= 54000 ~ "Long-term",
+                                               Data_NS_chekin_stations_total$Totale.stallingstijd..seconden. >= 18000 & Data_NS_chekin_stations_total$Startuurnr >= 14 & Data_NS_chekin_stations_total$Startuurnr <= 18  & Data_NS_chekin_stations_total$Einduurnr >= 21 | Data_NS_chekin_stations_total$Einduurnr == 22 | Data_NS_chekin_stations_total$Einduurnr == 23 | Data_NS_chekin_stations_total$Einduurnr == 0 | Data_NS_chekin_stations_total$Einduurnr == 1 ~ "Evening-users",
+                                               Data_NS_chekin_stations_total$Totale.stallingstijd..seconden. <= 54000 ~ "Other"
+)
+
+
+# dummycode user types
+Data_NS_chekin_jaarbeurs_total$user_type_code <- sapply(as.character(Data_NS_chekin_jaarbeurs_total$User_type), switch, "Short-use" = 0, "Home-side" = 1, "Activity-side" = 2, "Long-term" = 3, "Evening-users" = 4, "Other" = 5,
+                                                      USE.NAMES = F)
+
+Data_NS_chekin_stations_total$user_type_code <- sapply(as.character(Data_NS_chekin_stations_total$User_type), switch, "Short-use" = 0, "Home-side" = 1, "Activity-side" = 2, "Long-term" = 3, "Evening-users" = 4, "Other" = 5,
+                                                     USE.NAMES = F)
+
+
+
+# dummy code for user types
+Data_NS_chekin_jaarbeurs_total$Shortstay <- case_when(Data_NS_chekin_jaarbeurs_total$user_type_code == 0 ~ 1,
+                                                    Data_NS_chekin_jaarbeurs_total$user_type_code >= 0 ~ 0)
+Data_NS_chekin_jaarbeurs_total$Homeside <- case_when(Data_NS_chekin_jaarbeurs_total$user_type_code == 1 ~ 1,
+                                                        Data_NS_chekin_jaarbeurs_total$user_type_code >= 0 ~ 0)
+Data_NS_chekin_jaarbeurs_total$Activity_side <- case_when(Data_NS_chekin_jaarbeurs_total$user_type_code == 2 ~ 1,
+                                                   Data_NS_chekin_jaarbeurs_total$user_type_code >= 0 ~ 0)
+Data_NS_chekin_jaarbeurs_total$Long_term <- case_when(Data_NS_chekin_jaarbeurs_total$user_type_code == 3 ~ 1,
+                                                    Data_NS_chekin_jaarbeurs_total$user_type_code >= 0 ~ 0)
+Data_NS_chekin_jaarbeurs_total$Evening_users <- case_when(Data_NS_chekin_jaarbeurs_total$user_type_code == 4 ~ 1,
+                                                        Data_NS_chekin_jaarbeurs_total$user_type_code >= 0 ~ 0)
+Data_NS_chekin_jaarbeurs_total$Other <- case_when(Data_NS_chekin_jaarbeurs_total$user_type_code == 5 ~ 1,
+                                                Data_NS_chekin_jaarbeurs_total$user_type_code >= 0 ~ 0)
+
+Data_NS_chekin_stations_total$Shortstay <- case_when(Data_NS_chekin_stations_total$user_type_code == 0 ~ 1,
+                                                   Data_NS_chekin_stations_total$user_type_code >= 0 ~ 0)
+Data_NS_chekin_stations_total$Homeside <- case_when(Data_NS_chekin_stations_total$user_type_code == 1 ~ 1,
+                                                       Data_NS_chekin_stations_total$user_type_code >= 0 ~ 0)
+Data_NS_chekin_stations_total$Activity_side <- case_when(Data_NS_chekin_stations_total$user_type_code == 2 ~ 1,
+                                                  Data_NS_chekin_stations_total$user_type_code >= 0 ~ 0)
+Data_NS_chekin_stations_total$Long_term <- case_when(Data_NS_chekin_stations_total$user_type_code == 3 ~ 1,
+                                                   Data_NS_chekin_stations_total$user_type_code >= 0 ~ 0)
+Data_NS_chekin_stations_total$Evening_users <- case_when(Data_NS_chekin_stations_total$user_type_code == 4 ~ 1,
+                                                       Data_NS_chekin_stations_total$user_type_code >= 0 ~ 0)
+Data_NS_chekin_stations_total$Other <- case_when(Data_NS_chekin_stations_total$user_type_code == 5 ~ 1,
+                                               Data_NS_chekin_stations_total$user_type_code >= 0 ~ 0)
+
+
+
+# add feature to join start date and time
+Data_NS_chekin_stations_total$Start_datum_tijd <- as.POSIXct(paste(Data_NS_chekin_stations_total$Startdatum, Data_NS_chekin_stations_total$StartTijd), format="%Y-%m-%d %H:%M")
+Data_NS_chekin_jaarbeurs_total$Start_datum_tijd <- as.POSIXct(paste(Data_NS_chekin_jaarbeurs_total$Startdatum, Data_NS_chekin_jaarbeurs_total$StartTijd), format="%Y-%m-%d %H:%M")
+
+# add feature for 30 minute periods
+Data_NS_chekin_stations_total$Starthalfuur <- floor_date(Data_NS_chekin_stations_total$Start_datum_tijd, "30 mins")
+Data_NS_chekin_jaarbeurs_total$Starthalfuur <- floor_date(Data_NS_chekin_jaarbeurs_total$Start_datum_tijd, "30 mins")
+
+
+# create new dataset for half-hour intervals
+Halfhourly_stations <- rowsum(Data_NS_chekin_stations_total$Aantal.Parkeren, format(Data_NS_chekin_stations_total$Starthalfuur , "%Y-%m-%d %H:%M")) 
+Halfhourly_Jaarbeurs<- rowsum(Data_NS_chekin_jaarbeurs_total$Aantal.Parkeren, format(Data_NS_chekin_jaarbeurs_total$Starthalfuur , "%Y-%m-%d %H:%M")) 
+
+
+
+# add feature to join end date and time
+Data_NS_chekin_stations_total$Eind_datum_tijd <- as.POSIXct(paste(Data_NS_chekin_stations_total$Einddatum, Data_NS_chekin_stations_total$EindTijd), format="%Y-%m-%d %H:%M")
+Data_NS_chekin_jaarbeurs_total$Eind_datum_tijd <- as.POSIXct(paste(Data_NS_chekin_jaarbeurs_total$Einddatum, Data_NS_chekin_jaarbeurs_total$EindTijd), format="%Y-%m-%d %H:%M")
+
+#add feature for 30 minute periods
+Data_NS_chekin_stations_total$Eindhalfuur <- floor_date(Data_NS_chekin_stations_total$Eind_datum_tijd, "30 mins")
+Data_NS_chekin_jaarbeurs_total$Eindhalfuur <- floor_date(Data_NS_chekin_jaarbeurs_total$Eind_datum_tijd, "30 mins")
+
+
+# create new dataset for half-hour intervals
+Halfhourly_end_stations <- rowsum(Data_NS_chekin_stations_total$Aantal.Parkeren, format(Data_NS_chekin_stations_total$Eindhalfuur , "%Y-%m-%d %H:%M")) 
+Halfhourly_end_Jaarbeurs<- rowsum(Data_NS_chekin_jaarbeurs_total$Aantal.Parkeren, format(Data_NS_chekin_jaarbeurs_total$Eindhalfuur , "%Y-%m-%d %H:%M")) 
+
+# create Time-seriers based on half hours
+Time_series1 <- seq(as.POSIXct("2017-8-6 0:00"), as.POSIXct("2018-8-11 22:00"), by = "30 mins")
+Time_series2 <- seq(as.POSIXct("2017-1-1 0:00"), as.POSIXct("2018-9-30 22:00"), by = "30 mins")
+
+
+# make dataframe from matrices
+Halfhourly_stations <- as.data.frame(Halfhourly_stations)
+Halfhourly_Jaarbeurs <- as.data.frame(Halfhourly_Jaarbeurs)
+
+Halfhourly_end_stations <- as.data.frame(Halfhourly_end_stations)
+Halfhourly_end_Jaarbeurs <- as.data.frame(Halfhourly_end_Jaarbeurs)
+
+Time_series1 <- as.data.frame(Time_series1)
+Time_series2 <- as.data.frame(Time_series2)
+
+
+#sum usertypes per 30min
+Halfhourly_stations_users <- rowsum(Data_NS_chekin_stations_total[16:21], format(Data_NS_chekin_stations_total$Starthalfuur , "%Y-%m-%d %H:%M")) 
+Halfhourly_jaarbeurs_users <- rowsum(Data_NS_chekin_jaarbeurs_total[16:21], format(Data_NS_chekin_jaarbeurs_total$Starthalfuur , "%Y-%m-%d %H:%M")) 
+
+
+
+# rownames --> first column
+setDT(Halfhourly_stations, keep.rownames = TRUE)[]
+setDT(Halfhourly_Jaarbeurs, keep.rownames = TRUE)[]
+
+setDT(Halfhourly_end_stations, keep.rownames = TRUE)[]
+setDT(Halfhourly_end_Jaarbeurs, keep.rownames = TRUE)[]
+
+setDT(Halfhourly_stations_users, keep.rownames = TRUE)[]
+setDT(Halfhourly_jaarbeurs_users, keep.rownames = TRUE)[]
+
+
+# Add column names to tables
+colnames(Halfhourly_stations) <- c("Date", "Incoming")
+colnames(Halfhourly_Jaarbeurs) <- c("Date", "Incoming")
+
+colnames(Halfhourly_end_stations) <- c("Date", "Outgoing")
+colnames(Halfhourly_end_Jaarbeurs) <- c("Date", "Outgoing")
+
+colnames(Time_series1) <- c("Date")
+colnames(Time_series2) <- c("Date")
+
+colnames(Halfhourly_stations_users) [1] <- "Date"
+colnames(Halfhourly_jaarbeurs_users)  [1] <- "Date"
+
+# change format
+Time_series1$Date <- format(as.POSIXct(Time_series1$Date, format="%Y-%m-%d %H:%M:%S"), format="%Y-%m-%d %H:%M")
+Time_series2$Date <- format(as.POSIXct(Time_series2$Date, format="%Y-%m-%d %H:%M:%S"), format="%Y-%m-%d %H:%M")
+
+# merge datasets
+Time_series_station <- Halfhourly_stations[Time_series1, on = c("Date")]
+Time_series_station <- Halfhourly_end_stations[Time_series_station, on = c("Date")]
+
+Time_series_jaarbeurs <- Halfhourly_Jaarbeurs[Time_series2, on = c("Date")]
+Time_series_jaarbeurs <- Halfhourly_end_Jaarbeurs[Time_series_jaarbeurs, on = c("Date")]
+
+Time_series_jaarbeurs <- Halfhourly_jaarbeurs_users[Time_series_jaarbeurs, on = c("Date")]
+Time_series_station <- Halfhourly_stations_users[Time_series_station, on = c("Date")]
+
+
+# Split date into date and time
+Time_series_station$Halfuur <- format(as.POSIXct(Time_series_station$Date, format="%Y-%m-%d %H:%M"), format="%H:%M")
+Time_series_station$Jaar_maand_dag <- format(as.POSIXct(Time_series_station$Date, format="%Y-%m-%d %H:%M"), format="%Y-%m-%d")
+
+Time_series_jaarbeurs$Halfuur <- format(as.POSIXct(Time_series_jaarbeurs$Date, format="%Y-%m-%d %H:%M"), format="%H:%M")
+Time_series_jaarbeurs$Jaar_maand_dag <- format(as.POSIXct(Time_series_jaarbeurs$Date, format="%Y-%m-%d %H:%M"), format="%Y-%m-%d")
+
+
+# Fill Na's with zero 
+Time_series_station[is.na(Time_series_station)] <- 0
+Time_series_jaarbeurs[is.na(Time_series_jaarbeurs)] <- 0
+
+
+# change order of columns
+Time_series_station <- Time_series_station[,c(1, 11,10,9,8 , 2:7)]
+Time_series_jaarbeurs <- Time_series_jaarbeurs[,c(1, 11,10,9,8 , 2:7)]
+
+
+# make numerics of half hours
+Time_series_station$Halfuurnum <- format(as.POSIXct(Time_series_station$Halfuur, format="%H:%M"), format="%H%M")
+Time_series_station$Halfuurnum  <- as.numeric(Time_series_station$Halfuurnum)
+
+Time_series_jaarbeurs$Halfuurnum <- format(as.POSIXct(Time_series_jaarbeurs$Halfuur, format="%H:%M"), format="%H%M")
+Time_series_jaarbeurs$Halfuurnum  <- as.numeric(Time_series_jaarbeurs$Halfuurnum)
+
+
+# Add day of the week to the datasets:
+Time_series_station$day_of_week<- weekdays(as.Date(Time_series_station$Date))
+Time_series_jaarbeurs$day_of_week<- weekdays(as.Date(Time_series_jaarbeurs$Date))
+
+
+# change names of weekdays into numbers
+Time_series_station$day_of_week_number<- sapply(as.character(Time_series_station$day_of_week), switch, "zondag" = 1, "maandag" = 2, "dinsdag" = 3, "woensdag" = 4, "donderdag" = 5, "vrijdag" = 6, "zaterdag" = 7, 
+                                                   USE.NAMES = F)
+
+Time_series_jaarbeurs$day_of_week_number<- sapply(as.character(Time_series_jaarbeurs$day_of_week), switch, "zondag" = 1, "maandag" = 2, "dinsdag" = 3, "woensdag" = 4, "donderdag" = 5, "vrijdag" = 6, "zaterdag" = 7, 
+                                                     USE.NAMES = F)
+
+
+
+# dummycode week and weekenddays
+Time_series_station$week <- sapply(as.character(Time_series_station$day_of_week), switch, "zondag" = 0, "zaterdag" = 0, "maandag" = 1, "dinsdag" = 1, "woensdag" = 1,"donderdag" = 1,"vrijdag" = 1, 
+                                      USE.NAMES = F)
+
+Time_series_jaarbeurs$week<- sapply(as.character(Time_series_jaarbeurs$day_of_week), switch, "zondag" = 0, "zaterdag" = 0, "maandag" = 1, "dinsdag" = 1, "woensdag" = 1,"donderdag" = 1,"vrijdag" = 1, 
+                                       USE.NAMES = F)
+
+
+Time_series_station$weekend <- sapply(as.character(Time_series_station$day_of_week), switch, "zondag" = 1, "zaterdag" = 1, "maandag" = 0, "dinsdag" = 0, "woensdag" = 0,"donderdag" = 0,"vrijdag" = 0, 
+                                         USE.NAMES = F)
+
+Time_series_jaarbeurs$weekend <- sapply(as.character(Time_series_jaarbeurs$day_of_week), switch, "zondag" = 1, "zaterdag" = 1, "maandag" = 0, "dinsdag" = 0, "woensdag" = 0,"donderdag" = 0,"vrijdag" = 0, 
+                                           USE.NAMES = F)
+
+
+
+# dummycode peak and non-peakhours
+Time_series_station$peak <- case_when(Time_series_station$Halfuurnum >= 630 & Time_series_station$Halfuurnum <= 900 & Time_series_station$week == 1 | Time_series_station$Halfuurnum >= 1630 & Time_series_station$Halfuurnum <= 1900 & Time_series_station$week == 1 ~ 1,
+                                         Time_series_station$Halfuurnum <= 2330 ~ 0
+)
+
+Time_series_jaarbeurs$peak <- case_when(Time_series_jaarbeurs$Halfuurnum >= 630 & Time_series_jaarbeurs$Halfuurnum <= 900 & Time_series_jaarbeurs$week == 1 | Time_series_jaarbeurs$Halfuurnum >= 1630 & Time_series_jaarbeurs$Halfuurnum <= 1900 & Time_series_jaarbeurs$week == 1 ~ 1,
+                                           Time_series_jaarbeurs$Halfuurnum <= 2330 ~ 0
+)
+
+
+Time_series_station$non_peak <- case_when(Time_series_station$Halfuurnum >= 630 & Time_series_station$Halfuurnum <= 900 & Time_series_station$week == 1 | Time_series_station$Halfuurnum >= 1630 & Time_series_station$Halfuurnum <= 1900 & Time_series_station$week == 1 ~ 0,
+                                             Time_series_station$Halfuurnum <= 2330 ~ 1
+)
+
+Time_series_jaarbeurs$non_peak <- case_when(Time_series_jaarbeurs$Halfuurnum >= 630 & Time_series_jaarbeurs$Halfuurnum <= 900 & Time_series_jaarbeurs$week == 1 | Time_series_jaarbeurs$Halfuurnum >= 1630 & Time_series_jaarbeurs$Halfuurnum <= 1900 & Time_series_jaarbeurs$week == 1 ~ 0,
+                                               Time_series_jaarbeurs$Halfuurnum <= 2330 ~ 1
+)
+
+
+# add weather dataset
+# add date and time for weather and merge with Knmi dataset
+Time_series_station$Date_time_weather <- format(as.POSIXct(Time_series_station$Date, format="%Y-%m-%d %H:%M"), format="%Y-%m-%d %H")
+Time_series_station <- Time_series_station[Data_KNMI, on = c("Date_time_weather")]
+
+Time_series_jaarbeurs$Date_time_weather <- format(as.POSIXct(Time_series_jaarbeurs$Date, format="%Y-%m-%d %H:%M"), format="%Y-%m-%d %H")
+Time_series_jaarbeurs <- Time_series_jaarbeurs[Data_KNMI, on = c("Date_time_weather")]
+
+
+
+# delete unused records
+Time_series_station <- Time_series_station[Time_series_station$Date >= "2017-08-07 00:00"]
+Time_series_station <- Time_series_station[Time_series_station$Date <= "2018-08-11 22:00"]
+Time_series_jaarbeurs <- Time_series_jaarbeurs[Time_series_jaarbeurs$Date <= "2018-09-30 22:00"]
+
+
+
+# delete unnecessary columns
+Time_series_jaarbeurs <- Time_series_jaarbeurs %>% select(-2, -19, -20, -21, -31)
+Time_series_station <- Time_series_station %>% select(-2, -19, -20, -21, -31)
+
+
+
+# Adding of delay features t-30 - t-480 for Incoming
+Time_series_station$t_min30_Incoming <- with(Time_series_station, c(Incoming[1],Incoming[-1]+Incoming[-nrow(Time_series_station)] - Incoming[-1]))
+Time_series_station$t_min60_Incoming <- with(Time_series_station, c(t_min30_Incoming[1],t_min30_Incoming[-1]+t_min30_Incoming[-nrow(Time_series_station)] - t_min30_Incoming[-1]))
+Time_series_station$t_min90_Incoming <- with(Time_series_station, c(t_min60_Incoming[1],t_min60_Incoming[-1]+t_min60_Incoming[-nrow(Time_series_station)] - t_min60_Incoming[-1]))
+Time_series_station$t_min120_Incoming <- with(Time_series_station, c(t_min90_Incoming[1],t_min90_Incoming[-1]+t_min90_Incoming[-nrow(Time_series_station)] - t_min90_Incoming[-1]))
+Time_series_station$t_min150_Incoming <- with(Time_series_station, c(t_min120_Incoming[1],t_min120_Incoming[-1]+t_min120_Incoming[-nrow(Time_series_station)] - t_min120_Incoming[-1]))
+Time_series_station$t_min180_Incoming <- with(Time_series_station, c(t_min150_Incoming[1],t_min150_Incoming[-1]+t_min150_Incoming[-nrow(Time_series_station)] - t_min150_Incoming[-1]))
+Time_series_station$t_min210_Incoming <- with(Time_series_station, c(t_min180_Incoming[1],t_min180_Incoming[-1]+t_min180_Incoming[-nrow(Time_series_station)] - t_min180_Incoming[-1]))
+Time_series_station$t_min240_Incoming <- with(Time_series_station, c(t_min210_Incoming[1],t_min210_Incoming[-1]+t_min210_Incoming[-nrow(Time_series_station)] - t_min210_Incoming[-1]))
+Time_series_station$t_min270_Incoming <- with(Time_series_station, c(t_min240_Incoming[1],t_min240_Incoming[-1]+t_min240_Incoming[-nrow(Time_series_station)] - t_min240_Incoming[-1]))
+Time_series_station$t_min300_Incoming <- with(Time_series_station, c(t_min270_Incoming[1],t_min270_Incoming[-1]+t_min270_Incoming[-nrow(Time_series_station)] - t_min270_Incoming[-1]))
+Time_series_station$t_min330_Incoming <- with(Time_series_station, c(t_min300_Incoming[1],t_min300_Incoming[-1]+t_min300_Incoming[-nrow(Time_series_station)] - t_min300_Incoming[-1]))
+Time_series_station$t_min360_Incoming <- with(Time_series_station, c(t_min330_Incoming[1],t_min330_Incoming[-1]+t_min330_Incoming[-nrow(Time_series_station)] - t_min330_Incoming[-1]))
+Time_series_station$t_min390_Incoming <- with(Time_series_station, c(t_min360_Incoming[1],t_min360_Incoming[-1]+t_min360_Incoming[-nrow(Time_series_station)] - t_min360_Incoming[-1]))
+Time_series_station$t_min420_Incoming <- with(Time_series_station, c(t_min390_Incoming[1],t_min390_Incoming[-1]+t_min390_Incoming[-nrow(Time_series_station)] - t_min390_Incoming[-1]))
+Time_series_station$t_min450_Incoming <- with(Time_series_station, c(t_min420_Incoming[1],t_min420_Incoming[-1]+t_min420_Incoming[-nrow(Time_series_station)] - t_min420_Incoming[-1]))
+Time_series_station$t_min480_Incoming <- with(Time_series_station, c(t_min450_Incoming[1],t_min450_Incoming[-1]+t_min450_Incoming[-nrow(Time_series_station)] - t_min450_Incoming[-1]))
+
+
+Time_series_jaarbeurs$t_min30_Incoming <- with(Time_series_jaarbeurs, c(Incoming[1],Incoming[-1]+Incoming[-nrow(Time_series_jaarbeurs)] - Incoming[-1]))
+Time_series_jaarbeurs$t_min60_Incoming <- with(Time_series_jaarbeurs, c(t_min30_Incoming[1],t_min30_Incoming[-1]+t_min30_Incoming[-nrow(Time_series_jaarbeurs)] - t_min30_Incoming[-1]))
+Time_series_jaarbeurs$t_min90_Incoming <- with(Time_series_jaarbeurs, c(t_min60_Incoming[1],t_min60_Incoming[-1]+t_min60_Incoming[-nrow(Time_series_jaarbeurs)] - t_min60_Incoming[-1]))
+Time_series_jaarbeurs$t_min120_Incoming <- with(Time_series_jaarbeurs, c(t_min90_Incoming[1],t_min90_Incoming[-1]+t_min90_Incoming[-nrow(Time_series_jaarbeurs)] - t_min90_Incoming[-1]))
+Time_series_jaarbeurs$t_min150_Incoming <- with(Time_series_jaarbeurs, c(t_min120_Incoming[1],t_min120_Incoming[-1]+t_min120_Incoming[-nrow(Time_series_jaarbeurs)] - t_min120_Incoming[-1]))
+Time_series_jaarbeurs$t_min180_Incoming <- with(Time_series_jaarbeurs, c(t_min150_Incoming[1],t_min150_Incoming[-1]+t_min150_Incoming[-nrow(Time_series_jaarbeurs)] - t_min150_Incoming[-1]))
+Time_series_jaarbeurs$t_min210_Incoming <- with(Time_series_jaarbeurs, c(t_min180_Incoming[1],t_min180_Incoming[-1]+t_min180_Incoming[-nrow(Time_series_jaarbeurs)] - t_min180_Incoming[-1]))
+Time_series_jaarbeurs$t_min240_Incoming <- with(Time_series_jaarbeurs, c(t_min210_Incoming[1],t_min210_Incoming[-1]+t_min210_Incoming[-nrow(Time_series_jaarbeurs)] - t_min210_Incoming[-1]))
+Time_series_jaarbeurs$t_min270_Incoming <- with(Time_series_jaarbeurs, c(t_min240_Incoming[1],t_min240_Incoming[-1]+t_min240_Incoming[-nrow(Time_series_jaarbeurs)] - t_min240_Incoming[-1]))
+Time_series_jaarbeurs$t_min300_Incoming <- with(Time_series_jaarbeurs, c(t_min270_Incoming[1],t_min270_Incoming[-1]+t_min270_Incoming[-nrow(Time_series_jaarbeurs)] - t_min270_Incoming[-1]))
+Time_series_jaarbeurs$t_min330_Incoming <- with(Time_series_jaarbeurs, c(t_min300_Incoming[1],t_min300_Incoming[-1]+t_min300_Incoming[-nrow(Time_series_jaarbeurs)] - t_min300_Incoming[-1]))
+Time_series_jaarbeurs$t_min360_Incoming <- with(Time_series_jaarbeurs, c(t_min330_Incoming[1],t_min330_Incoming[-1]+t_min330_Incoming[-nrow(Time_series_jaarbeurs)] - t_min330_Incoming[-1]))
+Time_series_jaarbeurs$t_min390_Incoming <- with(Time_series_jaarbeurs, c(t_min360_Incoming[1],t_min360_Incoming[-1]+t_min360_Incoming[-nrow(Time_series_jaarbeurs)] - t_min360_Incoming[-1]))
+Time_series_jaarbeurs$t_min420_Incoming <- with(Time_series_jaarbeurs, c(t_min390_Incoming[1],t_min390_Incoming[-1]+t_min390_Incoming[-nrow(Time_series_jaarbeurs)] - t_min390_Incoming[-1]))
+Time_series_jaarbeurs$t_min450_Incoming <- with(Time_series_jaarbeurs, c(t_min420_Incoming[1],t_min420_Incoming[-1]+t_min420_Incoming[-nrow(Time_series_jaarbeurs)] - t_min420_Incoming[-1]))
+Time_series_jaarbeurs$t_min480_Incoming <- with(Time_series_jaarbeurs, c(t_min450_Incoming[1],t_min450_Incoming[-1]+t_min450_Incoming[-nrow(Time_series_jaarbeurs)] - t_min450_Incoming[-1]))
+
+
+# Adding of delay features t-30 - t-480 for Outgoing
+Time_series_station$t_min30_Outgoing <- with(Time_series_station, c(Outgoing[1],Outgoing[-1]+Outgoing[-nrow(Time_series_station)] - Outgoing[-1]))
+Time_series_station$t_min60_Outgoing <- with(Time_series_station, c(t_min30_Outgoing[1],t_min30_Outgoing[-1]+t_min30_Outgoing[-nrow(Time_series_station)] - t_min30_Outgoing[-1]))
+Time_series_station$t_min90_Outgoing <- with(Time_series_station, c(t_min60_Outgoing[1],t_min60_Outgoing[-1]+t_min60_Outgoing[-nrow(Time_series_station)] - t_min60_Outgoing[-1]))
+Time_series_station$t_min120_Outgoing <- with(Time_series_station, c(t_min90_Outgoing[1],t_min90_Outgoing[-1]+t_min90_Outgoing[-nrow(Time_series_station)] - t_min90_Outgoing[-1]))
+Time_series_station$t_min150_Outgoing <- with(Time_series_station, c(t_min120_Outgoing[1],t_min120_Outgoing[-1]+t_min120_Outgoing[-nrow(Time_series_station)] - t_min120_Outgoing[-1]))
+Time_series_station$t_min180_Outgoing <- with(Time_series_station, c(t_min150_Outgoing[1],t_min150_Outgoing[-1]+t_min150_Outgoing[-nrow(Time_series_station)] - t_min150_Outgoing[-1]))
+Time_series_station$t_min210_Outgoing <- with(Time_series_station, c(t_min180_Outgoing[1],t_min180_Outgoing[-1]+t_min180_Outgoing[-nrow(Time_series_station)] - t_min180_Outgoing[-1]))
+Time_series_station$t_min240_Outgoing <- with(Time_series_station, c(t_min210_Outgoing[1],t_min210_Outgoing[-1]+t_min210_Outgoing[-nrow(Time_series_station)] - t_min210_Outgoing[-1]))
+Time_series_station$t_min270_Outgoing <- with(Time_series_station, c(t_min240_Outgoing[1],t_min240_Outgoing[-1]+t_min240_Outgoing[-nrow(Time_series_station)] - t_min240_Outgoing[-1]))
+Time_series_station$t_min300_Outgoing <- with(Time_series_station, c(t_min270_Outgoing[1],t_min270_Outgoing[-1]+t_min270_Outgoing[-nrow(Time_series_station)] - t_min270_Outgoing[-1]))
+Time_series_station$t_min330_Outgoing <- with(Time_series_station, c(t_min300_Outgoing[1],t_min300_Outgoing[-1]+t_min300_Outgoing[-nrow(Time_series_station)] - t_min300_Outgoing[-1]))
+Time_series_station$t_min360_Outgoing <- with(Time_series_station, c(t_min330_Outgoing[1],t_min330_Outgoing[-1]+t_min330_Outgoing[-nrow(Time_series_station)] - t_min330_Outgoing[-1]))
+Time_series_station$t_min390_Outgoing <- with(Time_series_station, c(t_min360_Outgoing[1],t_min360_Outgoing[-1]+t_min360_Outgoing[-nrow(Time_series_station)] - t_min360_Outgoing[-1]))
+Time_series_station$t_min420_Outgoing <- with(Time_series_station, c(t_min390_Outgoing[1],t_min390_Outgoing[-1]+t_min390_Outgoing[-nrow(Time_series_station)] - t_min390_Outgoing[-1]))
+Time_series_station$t_min450_Outgoing <- with(Time_series_station, c(t_min420_Outgoing[1],t_min420_Outgoing[-1]+t_min420_Outgoing[-nrow(Time_series_station)] - t_min420_Outgoing[-1]))
+Time_series_station$t_min480_Outgoing <- with(Time_series_station, c(t_min450_Outgoing[1],t_min450_Outgoing[-1]+t_min450_Outgoing[-nrow(Time_series_station)] - t_min450_Outgoing[-1]))
+
+
+Time_series_jaarbeurs$t_min30_Outgoing <- with(Time_series_jaarbeurs, c(Outgoing[1],Outgoing[-1]+Outgoing[-nrow(Time_series_jaarbeurs)] - Outgoing[-1]))
+Time_series_jaarbeurs$t_min60_Outgoing <- with(Time_series_jaarbeurs, c(t_min30_Outgoing[1],t_min30_Outgoing[-1]+t_min30_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min30_Outgoing[-1]))
+Time_series_jaarbeurs$t_min90_Outgoing <- with(Time_series_jaarbeurs, c(t_min60_Outgoing[1],t_min60_Outgoing[-1]+t_min60_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min60_Outgoing[-1]))
+Time_series_jaarbeurs$t_min120_Outgoing <- with(Time_series_jaarbeurs, c(t_min90_Outgoing[1],t_min90_Outgoing[-1]+t_min90_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min90_Outgoing[-1]))
+Time_series_jaarbeurs$t_min150_Outgoing <- with(Time_series_jaarbeurs, c(t_min120_Outgoing[1],t_min120_Outgoing[-1]+t_min120_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min120_Outgoing[-1]))
+Time_series_jaarbeurs$t_min180_Outgoing <- with(Time_series_jaarbeurs, c(t_min150_Outgoing[1],t_min150_Outgoing[-1]+t_min150_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min150_Outgoing[-1]))
+Time_series_jaarbeurs$t_min210_Outgoing <- with(Time_series_jaarbeurs, c(t_min180_Outgoing[1],t_min180_Outgoing[-1]+t_min180_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min180_Outgoing[-1]))
+Time_series_jaarbeurs$t_min240_Outgoing <- with(Time_series_jaarbeurs, c(t_min210_Outgoing[1],t_min210_Outgoing[-1]+t_min210_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min210_Outgoing[-1]))
+Time_series_jaarbeurs$t_min270_Outgoing <- with(Time_series_jaarbeurs, c(t_min240_Outgoing[1],t_min240_Outgoing[-1]+t_min240_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min240_Outgoing[-1]))
+Time_series_jaarbeurs$t_min300_Outgoing <- with(Time_series_jaarbeurs, c(t_min270_Outgoing[1],t_min270_Outgoing[-1]+t_min270_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min270_Outgoing[-1]))
+Time_series_jaarbeurs$t_min330_Outgoing <- with(Time_series_jaarbeurs, c(t_min300_Outgoing[1],t_min300_Outgoing[-1]+t_min300_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min300_Outgoing[-1]))
+Time_series_jaarbeurs$t_min360_Outgoing <- with(Time_series_jaarbeurs, c(t_min330_Outgoing[1],t_min330_Outgoing[-1]+t_min330_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min330_Outgoing[-1]))
+Time_series_jaarbeurs$t_min390_Outgoing <- with(Time_series_jaarbeurs, c(t_min360_Outgoing[1],t_min360_Outgoing[-1]+t_min360_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min360_Outgoing[-1]))
+Time_series_jaarbeurs$t_min420_Outgoing <- with(Time_series_jaarbeurs, c(t_min390_Outgoing[1],t_min390_Outgoing[-1]+t_min390_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min390_Outgoing[-1]))
+Time_series_jaarbeurs$t_min450_Outgoing <- with(Time_series_jaarbeurs, c(t_min420_Outgoing[1],t_min420_Outgoing[-1]+t_min420_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min420_Outgoing[-1]))
+Time_series_jaarbeurs$t_min480_Outgoing <- with(Time_series_jaarbeurs, c(t_min450_Outgoing[1],t_min450_Outgoing[-1]+t_min450_Outgoing[-nrow(Time_series_jaarbeurs)] - t_min450_Outgoing[-1]))
+
+
+# Adding target features for t + 30  t + 480 for Incoming
+Time_series_station$t_plus30_Incoming <- c(Time_series_station$Incoming[-1], NA)
+Time_series_station$t_plus60_Incoming <- c(Time_series_station$t_plus30_Incoming[-1], NA)
+Time_series_station$t_plus90_Incoming <- c(Time_series_station$t_plus60_Incoming[-1], NA)
+Time_series_station$t_plus120_Incoming <- c(Time_series_station$t_plus90_Incoming[-1], NA)
+Time_series_station$t_plus150_Incoming <- c(Time_series_station$t_plus120_Incoming[-1], NA)
+Time_series_station$t_plus180_Incoming <- c(Time_series_station$t_plus150_Incoming[-1], NA)
+Time_series_station$t_plus210_Incoming <- c(Time_series_station$t_plus180_Incoming[-1], NA)
+Time_series_station$t_plus240_Incoming <- c(Time_series_station$t_plus210_Incoming[-1], NA)
+Time_series_station$t_plus270_Incoming <- c(Time_series_station$t_plus240_Incoming[-1], NA)
+Time_series_station$t_plus300_Incoming <- c(Time_series_station$t_plus270_Incoming[-1], NA)
+Time_series_station$t_plus330_Incoming <- c(Time_series_station$t_plus300_Incoming[-1], NA)
+Time_series_station$t_plus360_Incoming <- c(Time_series_station$t_plus330_Incoming[-1], NA)
+Time_series_station$t_plus390_Incoming <- c(Time_series_station$t_plus360_Incoming[-1], NA)
+Time_series_station$t_plus420_Incoming <- c(Time_series_station$t_plus390_Incoming[-1], NA)
+Time_series_station$t_plus450_Incoming <- c(Time_series_station$t_plus420_Incoming[-1], NA)
+Time_series_station$t_plus480_Incoming <- c(Time_series_station$t_plus450_Incoming[-1], NA)
+
+Time_series_jaarbeurs$t_plus30_Incoming <- c(Time_series_jaarbeurs$Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus60_Incoming <- c(Time_series_jaarbeurs$t_plus30_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus90_Incoming <- c(Time_series_jaarbeurs$t_plus60_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus120_Incoming <- c(Time_series_jaarbeurs$t_plus90_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus150_Incoming <- c(Time_series_jaarbeurs$t_plus120_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus180_Incoming <- c(Time_series_jaarbeurs$t_plus150_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus210_Incoming <- c(Time_series_jaarbeurs$t_plus180_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus240_Incoming <- c(Time_series_jaarbeurs$t_plus210_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus270_Incoming <- c(Time_series_jaarbeurs$t_plus240_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus300_Incoming <- c(Time_series_jaarbeurs$t_plus270_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus330_Incoming <- c(Time_series_jaarbeurs$t_plus300_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus360_Incoming <- c(Time_series_jaarbeurs$t_plus330_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus390_Incoming <- c(Time_series_jaarbeurs$t_plus360_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus420_Incoming <- c(Time_series_jaarbeurs$t_plus390_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus450_Incoming <- c(Time_series_jaarbeurs$t_plus420_Incoming[-1], NA)
+Time_series_jaarbeurs$t_plus480_Incoming <- c(Time_series_jaarbeurs$t_plus450_Incoming[-1], NA)
+
+
+# Adding target features for t + 30  t + 480 for Outgoing
+Time_series_station$t_plus30_Outgoing <- c(Time_series_station$Outgoing[-1], NA)
+Time_series_station$t_plus60_Outgoing <- c(Time_series_station$t_plus30_Outgoing[-1], NA)
+Time_series_station$t_plus90_Outgoing <- c(Time_series_station$t_plus60_Outgoing[-1], NA)
+Time_series_station$t_plus120_Outgoing <- c(Time_series_station$t_plus90_Outgoing[-1], NA)
+Time_series_station$t_plus150_Outgoing <- c(Time_series_station$t_plus120_Outgoing[-1], NA)
+Time_series_station$t_plus180_Outgoing <- c(Time_series_station$t_plus150_Outgoing[-1], NA)
+Time_series_station$t_plus210_Outgoing <- c(Time_series_station$t_plus180_Outgoing[-1], NA)
+Time_series_station$t_plus240_Outgoing <- c(Time_series_station$t_plus210_Outgoing[-1], NA)
+Time_series_station$t_plus270_Outgoing <- c(Time_series_station$t_plus240_Outgoing[-1], NA)
+Time_series_station$t_plus300_Outgoing <- c(Time_series_station$t_plus270_Outgoing[-1], NA)
+Time_series_station$t_plus330_Outgoing <- c(Time_series_station$t_plus300_Outgoing[-1], NA)
+Time_series_station$t_plus360_Outgoing <- c(Time_series_station$t_plus330_Outgoing[-1], NA)
+Time_series_station$t_plus390_Outgoing <- c(Time_series_station$t_plus360_Outgoing[-1], NA)
+Time_series_station$t_plus420_Outgoing <- c(Time_series_station$t_plus390_Outgoing[-1], NA)
+Time_series_station$t_plus450_Outgoing <- c(Time_series_station$t_plus420_Outgoing[-1], NA)
+Time_series_station$t_plus480_Outgoing <- c(Time_series_station$t_plus450_Outgoing[-1], NA)
+
+Time_series_jaarbeurs$t_plus30_Outgoing <- c(Time_series_jaarbeurs$Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus60_Outgoing <- c(Time_series_jaarbeurs$t_plus30_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus90_Outgoing <- c(Time_series_jaarbeurs$t_plus60_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus120_Outgoing <- c(Time_series_jaarbeurs$t_plus90_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus150_Outgoing <- c(Time_series_jaarbeurs$t_plus120_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus180_Outgoing <- c(Time_series_jaarbeurs$t_plus150_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus210_Outgoing <- c(Time_series_jaarbeurs$t_plus180_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus240_Outgoing <- c(Time_series_jaarbeurs$t_plus210_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus270_Outgoing <- c(Time_series_jaarbeurs$t_plus240_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus300_Outgoing <- c(Time_series_jaarbeurs$t_plus270_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus330_Outgoing <- c(Time_series_jaarbeurs$t_plus300_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus360_Outgoing <- c(Time_series_jaarbeurs$t_plus330_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus390_Outgoing <- c(Time_series_jaarbeurs$t_plus360_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus420_Outgoing <- c(Time_series_jaarbeurs$t_plus390_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus450_Outgoing <- c(Time_series_jaarbeurs$t_plus420_Outgoing[-1], NA)
+Time_series_jaarbeurs$t_plus480_Outgoing <- c(Time_series_jaarbeurs$t_plus450_Outgoing[-1], NA)
+
+
+# omit rows for more accurate data 
+Time_series_station <- Time_series_station[Time_series_station$Date <= "2018-08-10 00:00"]
+Time_series_station <- Time_series_station[Time_series_station$Date >= "2017-08-07 08:00"]
+
+Time_series_jaarbeurs <- Time_series_jaarbeurs[Time_series_jaarbeurs$Date <= "2018-09-30 14:00"]
+Time_series_jaarbeurs <- Time_series_jaarbeurs[Time_series_jaarbeurs$Date >= "2017-01-01 09:00"]
+
+
+# delete day of week
+Time_series_jaarbeurs$day_of_week <- NULL
+Time_series_station$day_of_week <- NULL
+
+# Creating subsets for peak and nonpeak hours
+Time_series_OV_jaarbeurs_peak <-  Time_series_ov_jaarbeurs[which(Time_series_ov_jaarbeurs$peak == 1),]
+Time_series_OV_jaarbeurs_nonpeak <-  Time_series_ov_jaarbeurs[which(Time_series_ov_jaarbeurs$non_peak == 1),]
+
+# Exporting
+write.csv(Time_series_jaarbeurs, file = "Time_series_jaarbeurs.csv")
+write.csv(Time_series_station, file = "Time_series_station.csv")
+write.csv(Time_series_OV_jaarbeurs_peak, file = "Time_series_OV_jaarbeurs_peak.csv")
+write.csv(Time_series_OV_jaarbeurs_nonpeak, file = "Time_series_OV_jaarbeurs_nonpeak.csv")
