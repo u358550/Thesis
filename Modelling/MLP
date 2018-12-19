@@ -1,0 +1,233 @@
+
+# coding: utf-8
+
+# In[1]:
+
+
+# import libraries
+import sklearn
+import pandas as pd
+import seaborn as sns
+import statsmodels.formula.api as smf
+from sklearn.linear_model import LinearRegression
+from sklearn import metrics
+from sklearn.cross_validation import train_test_split
+from sklearn.model_selection  import train_test_split
+import numpy as np
+from sklearn.datasets import make_regression
+from math import sqrt
+import matplotlib.pyplot as plt
+import seaborn as sn
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import r2_score
+
+
+# # Reading of datasets
+
+# In[2]:
+
+
+#Common storages
+Timeseries_Stationsplein = pd.read_csv(index_col=0)
+Timeseries_Jaarbeursplein = pd.read_csv(index_col=0)
+
+#Shared bicycles
+Timeseries_OV_Stationsplein = pd.read_csv(index_col=0)
+Timeseries_OV_Jaarbeursplein = pd.read_csv(index_col=0)
+
+
+# In[3]:
+
+
+# Function for calculating RMSLE
+def rmsle(y_pred, y_test):
+    log1 = np.nan_to_num(np.array([np.log(v + 1) for v in y_pred]))
+    log2 = np.nan_to_num(np.array([np.log(v + 1) for v in y_test]))
+    calc = (log1 - log2) ** 2
+    return np.sqrt(np.mean(calc))
+
+
+# # MLP for Stationsplein
+
+# In[16]:
+
+
+X = Timeseries_Stationsplein.iloc[:, 10:58]
+y = Timeseries_Stationsplein.t_plus420_Outgoing
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3, shuffle = False)
+
+scaler = MinMaxScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+mlp = MLPRegressor(hidden_layer_sizes=250, activation =  'relu', random_state=666, solver = 'lbfgs', alpha = 0.0001,)
+mlp.fit(X_train_scaled, y_train)
+
+
+X_test_scaled = scaler.transform(X_test)
+
+#predict
+y_pred = mlp.predict(X_test_scaled)
+
+#error metrics
+#R2
+print(r2_score(y_test, y_pred))
+
+#MAE
+print(mean_absolute_error(y_test, y_pred))
+
+#RMSE
+print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+#RMSLE
+print(rmsle(y_pred, y_test))
+
+
+# # MLP for Jaarbeursplein
+
+# In[28]:
+
+
+X = Timeseries_Jaarbeursplein.iloc[:, 10:58]
+y = Timeseries_Jaarbeursplein.t_plus480_Outgoing
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3, shuffle = False)
+
+scaler = MinMaxScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+mlp = MLPRegressor(hidden_layer_sizes=250, activation =  'relu', random_state=666, solver = 'lbfgs', alpha = 0.0001,)
+mlp.fit(X_train_scaled, y_train)
+
+
+X_test_scaled = scaler.transform(X_test)
+
+#predict
+y_pred = mlp.predict(X_test_scaled)
+
+#error metrics
+#R2
+print(r2_score(y_test, y_pred))
+
+#MAE
+print(mean_absolute_error(y_test, y_pred))
+
+#RMSE
+print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+#RMSLE
+print(rmsle(y_pred, y_test))
+
+
+# # MLP for stationsplein shared bicycles
+
+# In[34]:
+
+
+X = Timeseries_OV_Stationsplein.iloc[:, 10:58]
+y = Timeseries_OV_Stationsplein.t_plus480_Returns
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3, shuffle = False)
+
+scaler = MinMaxScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+mlp = MLPRegressor(hidden_layer_sizes=250, activation =  'relu', random_state=666, solver = 'lbfgs', alpha = 0.0001,)
+mlp.fit(X_train_scaled, y_train)
+
+
+X_test_scaled = scaler.transform(X_test)
+
+#predict
+y_pred = mlp.predict(X_test_scaled)
+
+#error metrics
+#R2
+print(r2_score(y_test, y_pred))
+
+#MAE
+print(mean_absolute_error(y_test, y_pred))
+
+#RMSE
+print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+#RMSLE
+print(rmsle(y_pred, y_test))
+
+
+# # MLP for Jaarbeursplein shared bicycles
+
+# In[28]:
+
+
+X = Timeseries_OV_Jaarbeursplein.iloc[:, 10:58]
+y = Timeseries_OV_Jaarbeursplein.t_plus420_Returns
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3, shuffle = False)
+
+scaler = MinMaxScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+mlp = MLPRegressor(hidden_layer_sizes=250, activation =  'relu', random_state=666, solver = 'lbfgs', alpha = 0.0001,)
+mlp.fit(X_train_scaled, y_train)
+
+
+X_test_scaled = scaler.transform(X_test)
+
+#predict
+y_pred = mlp.predict(X_test_scaled)
+
+#error metrics
+#R2
+print(r2_score(y_test, y_pred))
+
+#MAE
+print(mean_absolute_error(y_test, y_pred))
+
+#RMSE
+print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+#RMSLE
+print(rmsle(y_pred, y_test))
+
+
+# # Grid search for MLP
+
+# In[4]:
+
+
+from sklearn.model_selection import GridSearchCV
+
+X = Timeseries_Stationsplein.iloc[:, 10:58]
+y = Timeseries_Stationsplein.Incoming
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3, shuffle=False)
+
+scaler = MinMaxScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+param_grid = {
+    'hidden_layer_sizes': [50, 150, 250],
+    'activation': ['identity', 'relu'],
+    'solver': ['lbfgs', 'sgd'],
+    'learning_rate': ['constant', 'adaptive']
+}
+
+#Create model
+mlp = MLPRegressor
+
+#perform the actual grid search
+grid_search = GridSearchCV(mlp(), param_grid = param_grid, 
+                          cv = 3, n_jobs = -1, verbose = 2)
+
+grid_search.fit(X_train_scaled, y_train)
+
+grid_search.best_params_
+
