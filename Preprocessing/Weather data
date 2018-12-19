@@ -1,0 +1,36 @@
+
+# Install and read libraries
+install.packages("ggplot2")
+install.packages("lubridate")
+library("ggplot2")
+library("lubridate")
+
+# read dataset
+Data_KNMI_uur <- read.csv(header = TRUE, sep = ";")
+
+
+# Add feature for year of recording
+Data_KNMI_uur$Jaar <- format(as.Date(Data_KNMI_uur$YYYYMMDD, format="%Y-%m-%d"), "%Y")
+Data_KNMI_uur$Jaar<- as.numeric(Data_KNMI_uur$Jaar)
+
+# subset to only 2017 and 2018
+Data_KNMI <- Data_KNMI_uur[which(Data_KNMI_uur$Jaar == 2018 | Data_KNMI_uur$Jaar == 2017),]
+
+# Check for missing values
+sum(is.na(Data_KNMI)) 
+
+# Divide temperaturescale by 10
+Data_KNMI$T <- (Data_KNMI$T/10)
+
+# Add feature if warm or not (0 = not warm, 1 = warm) (warm = 20 degrees+)
+Data_KNMI$Warm <- case_when(Data_KNMI$T <= 20 ~ 0,
+                            Data_KNMI$T >= 20 ~ 1
+)
+
+# add date and time feature
+Data_KNMI$Date_time_weather <- as.POSIXct(paste(Data_KNMI$YYYYMMDD, Data_KNMI$HH), format="%Y-%m-%d %H")
+Data_KNMI$Date_time_weather <- format(as.POSIXct(Data_KNMI$Date_time_weather, format="%Y-%m-%d %H:%M:%S"), format="%Y-%m-%d %H")
+
+
+
+
