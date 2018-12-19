@@ -1,0 +1,177 @@
+# Plots for EDA
+# Install and read libraries
+install.packages("forcats")
+install.packages("plotly")
+install.packages("scales")
+install.packages("ggplot2")
+install.packages("plyr")
+install.packages("tidyr")
+install.packages("reshape2")
+library(scales)
+library(plotly)
+library(ggplot2)
+library(plyr)
+library(tidyr)
+library(forcats)
+library(reshape2)
+
+# rentals per hour for Jaarbeursplein
+Time_series_ov_jaarbeurs_week <- Time_series_ov_jaarbeurs[which(Time_series_ov_jaarbeurs$week == '1'),]
+Time_series_ov_jaarbeurs_weekend <- Time_series_ov_jaarbeurs[which(Time_series_ov_jaarbeurs$weekend == '1'),]
+
+#plotting rentals and returns for the jaarbeursplein storage during the week
+Rentals_jaarbeursplein_week <- aggregate(Time_series_ov_jaarbeurs_week$Rentals, by=list(Category=Time_series_ov_jaarbeurs_week$HH), FUN=sum)
+Returns_Jaarbeursplein_week <- aggregate(Time_series_ov_jaarbeurs_week$Returns, by=list(Category=Time_series_ov_jaarbeurs_week$HH), FUN=sum)
+Combined_jaarbeursplein_week <- merge(Rentals_jaarbeursplein_week,Returns_Jaarbeursplein_week,by="Category")
+
+colnames(Combined_jaarbeursplein_week) <- c("Hour", "Rentals",  "Returns")
+colnames(Rentals_jaarbeursplein_week) <- c("Hour", "sum")
+colnames(Returns_Jaarbeursplein_week) <- c("Hour", "sum")
+
+Rentals_jaarbeursplein_week$name <- "Rentals"
+Returns_Jaarbeursplein_week$name <- "Returns"
+
+BSS_jaarbeursplein_week <- rbind(Rentals_jaarbeursplein_week, Returns_Jaarbeursplein_week)
+
+plot1 <- ggplot(data=BSS_jaarbeursplein_week, aes(x=Hour, y=sum , fill = name)) +
+  geom_bar(stat="identity", position = "dodge") + scale_y_continuous(name = "Number of bicycles") + theme(legend.title=element_blank())
+plot1 <- ggplotly(plot1, width = 700, height = 250)
+plot1
+
+#plotting rentals and returns for the jaarbeursplein storage during the weekend
+Rentals_jaarbeursplein_weekend <- aggregate(Time_series_ov_jaarbeurs_weekend$Rentals, by=list(Category=Time_series_ov_jaarbeurs_weekend$HH), FUN=sum)
+Returns_Jaarbeursplein_weekend <- aggregate(Time_series_ov_jaarbeurs_weekend$Returns, by=list(Category=Time_series_ov_jaarbeurs_weekend$HH), FUN=sum)
+Combined_jaarbeursplein_weekend <- merge(Rentals_jaarbeursplein_weekend,Returns_Jaarbeursplein_weekend,by="Category")
+
+colnames(Combined_jaarbeursplein_weekend) <- c("Hour", "Rentals",  "Returns")
+colnames(Rentals_jaarbeursplein_weekend) <- c("Hour", "sum")
+colnames(Returns_Jaarbeursplein_weekend) <- c("Hour", "sum")
+
+Rentals_jaarbeursplein_weekend$name <- "Rentals"
+Returns_Jaarbeursplein_weekend$name <- "Returns"
+
+BSS_jaarbeursplein_weekend <- rbind(Rentals_jaarbeursplein_weekend, Returns_Jaarbeursplein_weekend)
+
+plot2 <- ggplot(data=BSS_jaarbeursplein_weekend, aes(x=Hour, y=sum , fill = name)) +
+  geom_bar(stat="identity", position = "dodge") + scale_y_continuous(name = "Number of bicycles") + theme(legend.title=element_blank())
+plot2 <- ggplotly(plot2, width = 700, height = 250)
+plot2
+
+
+Time_series_jaarbeurs_week <- Time_series_jaarbeurs[which(Time_series_jaarbeurs$week == '1'),]
+Time_series_jaarbeurs_weekend <- Time_series_jaarbeurs[which(Time_series_jaarbeurs$weekend == '1'),]
+
+
+#plotting incoming and outgoing for the jaarbeursplein storage during the week
+Incoming_jaarbeursplein_week <- aggregate(Time_series_jaarbeurs_week$Incoming, by=list(Category=Time_series_jaarbeurs_week$HH), FUN=sum)
+Outgoing_Jaarbeursplein_week <- aggregate(Time_series_jaarbeurs_week$Outgoing, by=list(Category=Time_series_jaarbeurs_week$HH), FUN=sum)
+
+colnames(Incoming_jaarbeursplein_week) <- c("Hour", "sum")
+colnames(Outgoing_Jaarbeursplein_week) <- c("Hour", "sum")
+
+Incoming_jaarbeursplein_week$name <- "Incoming"
+Outgoing_Jaarbeursplein_week$name <- "Outgoing"
+
+jaarbeursplein_week <- rbind(Incoming_jaarbeursplein_week, Outgoing_Jaarbeursplein_week)
+
+plot3 <- ggplot(data=jaarbeursplein_week, aes(x=Hour, y=sum , fill = name)) +
+  geom_bar(stat="identity", position = "dodge") + scale_y_continuous(name = "Number of bicycles") + theme(legend.title=element_blank())
+plot3 <- ggplotly(plot3, width = 700, height = 250)
+plot3
+
+#plotting incoming and outgoing for the jaarbeursplein storage during the weekend
+Incoming_jaarbeursplein_weekend <- aggregate(Time_series_jaarbeurs_weekend$Incoming, by=list(Category=Time_series_jaarbeurs_weekend$HH), FUN=sum)
+Outgoing_Jaarbeursplein_weekend <- aggregate(Time_series_jaarbeurs_weekend$Outgoing, by=list(Category=Time_series_jaarbeurs_weekend$HH), FUN=sum)
+
+colnames(Incoming_jaarbeursplein_weekend) <- c("Hour", "sum")
+colnames(Outgoing_Jaarbeursplein_weekend) <- c("Hour", "sum")
+
+Incoming_jaarbeursplein_weekend$name <- "Incoming"
+Outgoing_Jaarbeursplein_weekend$name <- "Outgoing"
+
+jaarbeursplein_weekend <- rbind(Incoming_jaarbeursplein_weekend, Outgoing_Jaarbeursplein_weekend)
+
+plot4 <- ggplot(data=jaarbeursplein_weekend, aes(x=Hour, y=sum , fill = name)) +
+  geom_bar(stat="identity", position = "dodge") + scale_y_continuous(name = "Number of bicycles") + theme(legend.title=element_blank())
+plot4 <- ggplotly(plot4, width = 700, height = 250)
+plot4
+
+# total incoming outgoing rentals and returns for both storages
+
+Rentals_Jaarbeurs <- sum(Time_series_ov_jaarbeurs$Rentals)
+Returns_Jaarbeurs <- sum(Time_series_ov_jaarbeurs$Returns)
+Rentals_Stations <- sum(Time_series_ov_station$Rentals)
+Returns_Stations <- sum(Time_series_ov_station$Returns)
+
+Incoming_Jaarbeurs <- sum(Time_series_jaarbeurs$Incoming)
+Outgoing_Jaarbeurs <- sum(Time_series_jaarbeurs$Outgoing)
+Incoming_Stations <- sum(Time_series_station$Incoming)
+Outgoing_Stations <- sum(Time_series_station$Outgoing)
+
+aframe = data.frame(Rentals_Jaarbeurs, Returns_Jaarbeurs, Rentals_Stations, Returns_Stations, Incoming_Jaarbeurs, Outgoing_Jaarbeurs, Incoming_Stations, Outgoing_Stations )
+
+bframe <- data.frame(r1=names(aframe), t(aframe))
+
+bframe$Storage <- (c("Jaarbeursplein", "Jaarbeursplein","Stationsplein", "Stationsplein", "Jaarbeursplein", "Jaarbeursplein","Stationsplein", "Stationsplein"))
+bframe$Type <- (c("Rentals BSS", "Returns BSS","Rentals BSS", "Returns BSS", "Incoming", "Outgoing","Incoming", "Outgoing"))
+bframe$r1 <- NULL
+
+colnames(bframe) <- c("Number", "Storage", "Type")
+
+plot5 <- ggplot(data=bframe, aes(x=Type, y=Number , fill = Storage)) +
+  geom_bar(stat="identity", position = "dodge") + scale_y_continuous(name = "Number of bicycles") + 
+  theme(legend.title=element_blank(), legend.spacing.x = unit(0.3, 'cm'), legend.key.size = unit(1.5, 'lines'), legend.key = element_rect(size = 2), axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0))) + 
+  scale_fill_manual(values=c("#545454","#A1A0A0"))
+  
+plot5
+
+# Read results 
+Results_incoming_stations <- read.csv(header = TRUE, sep = ";")
+Results_outgoing_stations <- read.csv(header = TRUE, sep = ";")
+Results_rentals_jaabeurs <- read.csv(header = TRUE, sep = ";")
+Results_returns_jaabeurs <- read.csv(header = TRUE, sep = ";")
+
+# plot results
+plot6 <- ggplot(data=Results_incoming_stations, aes(x=Time, y=RMSLE, group=Model, colour=Model)) +
+  geom_line(size = 0.8) +
+  ggtitle("Incoming bicycles Stationsplein")+
+  geom_point()+
+  scale_x_continuous(breaks = round(seq(min(Results_incoming_stations$Time), max(Results_incoming_stations$Time), by = 60),1)) +
+  scale_y_continuous(expand = c(0, 0.5))+
+  labs(x="Forecast horizon (mins)",y="RMSLE") 
+
+plot6 <- ggplotly(plot6, width = 800, height = 350)
+plot6
+
+plot7 <- ggplot(data=Results_outgoing_stations, aes(x=Time, y=RMSLE, group=Model, colour=Model)) +
+  geom_line(size = 0.8) +
+  ggtitle("Outgoing bicycles Stationsplein")+
+  geom_point()+
+  scale_x_continuous(breaks = round(seq(min(Results_outgoing_stations$Time), max(Results_outgoing_stations$Time), by = 60),1)) +
+  scale_y_continuous(expand = c(0, 0.5))+
+  labs(x="Forecast horizon (mins)",y="RMSLE") 
+
+plot7 <- ggplotly(plot7, width = 800, height = 350)
+plot7
+
+plot8 <- ggplot(data=Results_rentals_jaabeurs, aes(x=Time, y=RMSLE, group=Model, colour=Model)) +
+  geom_line(size = 0.8) +
+  ggtitle("Rentals BSS Jaarbeursplein")+
+  geom_point()+
+  scale_x_continuous(breaks = round(seq(min(Results_rentals_jaabeurs$Time), max(Results_rentals_jaabeurs$Time), by = 60),1)) +
+  scale_y_continuous(expand = c(0, 0.5))+
+  labs(x="Forecast horizon (mins)",y="RMSLE") 
+
+plot8 <- ggplotly(plot8, width = 800, height = 350)
+plot8
+
+plot9 <- ggplot(data=Results_returns_jaabeurs, aes(x=Time, y=RMSLE, group=Model, colour=Model)) +
+  geom_line(size = 0.8) +
+  ggtitle("Returns BSS Jaarbeursplein")+
+  geom_point()+
+  scale_x_continuous(breaks = round(seq(min(Results_returns_jaabeurs$Time), max(Results_returns_jaabeurs$Time), by = 60),1)) +
+  scale_y_continuous(expand = c(0, 0.5))+
+  labs(x="Forecast horizon (mins)",y="RMSLE") 
+
+plot9 <- ggplotly(plot9, width = 800, height = 350)
+plot9
