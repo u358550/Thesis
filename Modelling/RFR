@@ -1,0 +1,297 @@
+
+# coding: utf-8
+
+# In[1]:
+
+
+# Import libraries
+import pandas as pd
+import seaborn as sns
+import statsmodels.formula.api as smf
+from sklearn.linear_model import LinearRegression
+from sklearn import metrics
+from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.datasets import make_regression
+from math import sqrt
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import r2_score
+
+
+# # Reading of datasets
+
+# In[2]:
+
+
+#Common storages
+Timeseries_Stationsplein = pd.read_csv(index_col=0)
+Timeseries_Jaarbeursplein = pd.read_csv(index_col=0)
+
+#Shared bicycles
+Timeseries_OV_Stationsplein = pd.read_csv(index_col=0)
+Timeseries_OV_Jaarbeursplein = pd.read_csv(index_col=0)
+
+#Subsetted datasets for analysis
+Timeseries_Jaarbeursplein_peak = pd.read_csv(index_col=0)
+Timeseries_Jaarbeursplein_nonpeak = pd.read_csv(index_col=0)
+Timeseries_OV_Jaarbeursplein_peak = pd.read_csv(index_col=0)
+Timeseries_OV_Jaarbeursplein_nonpeak = pd.read_csv(index_col=0)
+
+
+# In[3]:
+
+
+# Define function for calculating RMSLE:
+def rmsle(y_pred, y_test):
+    log1 = np.nan_to_num(np.array([np.log(v + 1) for v in y_pred]))
+    log2 = np.nan_to_num(np.array([np.log(v + 1) for v in y_test]))
+    calc = (log1 - log2) ** 2
+    return np.sqrt(np.mean(calc))
+
+
+# # Random forest regressor for stationsplein
+
+# In[16]:
+
+
+
+X = Timeseries_Stationsplein.iloc[:, 10:58]
+y = Timeseries_Stationsplein.t_plus420_Outgoing
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3, shuffle=False)
+
+rf = RandomForestRegressor(n_estimators=1000, max_depth = 100, max_features = 20, min_samples_leaf= 3, min_samples_split = 8)
+rf.fit(X_train, y_train)
+
+#predict
+y_pred = rf.predict(X_test)
+
+
+from sklearn.metrics import mean_absolute_error
+
+#error metrics
+#R2
+print(r2_score(y_test, y_pred))
+
+#MAE
+print(mean_absolute_error(y_test, y_pred))
+
+#RMSE
+print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+#RMSLE
+print(rmsle(y_test, y_pred))
+
+
+# # Random forest regressor for Jaarbeursplein
+
+# In[16]:
+
+
+
+X = Timeseries_Jaarbeursplein.iloc[:, 10:58]
+y = Timeseries_Jaarbeursplein.t_plus480_Outgoing
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3, shuffle=False)
+
+rf = RandomForestRegressor(n_estimators=1000, max_depth = 100, max_features = 20, min_samples_leaf= 3, min_samples_split = 8)
+rf.fit(X_train, y_train)
+
+#predict
+y_pred = rf.predict(X_test)
+
+
+from sklearn.metrics import mean_absolute_error
+
+#error metrics
+#R2
+print(r2_score(y_test, y_pred))
+
+#MAE
+print(mean_absolute_error(y_test, y_pred))
+
+#RMSE
+print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+#RMSLE
+print(rmsle(y_test, y_pred))
+
+
+# # Random Forest Regressor stationsplein shared bicycles
+
+# In[22]:
+
+
+
+X = Timeseries_OV_Stationsplein.iloc[:, 10:58]
+y = Timeseries_OV_Stationsplein.t_plus480_Returns
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3, shuffle=False)
+
+rf = RandomForestRegressor(n_estimators=1000, max_depth = 100, max_features = 20, min_samples_leaf= 3, min_samples_split = 8)
+rf.fit(X_train, y_train)
+
+#predict
+y_pred = rf.predict(X_test)
+
+
+from sklearn.metrics import mean_absolute_error
+
+#error metrics
+#R2
+print(r2_score(y_test, y_pred))
+
+#MAE
+print(mean_absolute_error(y_test, y_pred))
+
+#RMSE
+print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+#RMSLE
+print(rmsle(y_test, y_pred))
+
+
+# # Random Forest Regressor Jaarbeursplein shared bicycles
+
+# In[28]:
+
+
+
+X = Timeseries_OV_Jaarbeursplein.iloc[:, 10:58]
+y = Timeseries_OV_Jaarbeursplein.t_plus420_Returns
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3, shuffle=False)
+
+rf = RandomForestRegressor(n_estimators=1000, max_depth = 100, max_features = 20, min_samples_leaf= 3, min_samples_split = 8)
+rf.fit(X_train, y_train)
+
+#predict
+y_pred = rf.predict(X_test)
+
+
+from sklearn.metrics import mean_absolute_error
+
+#error metrics
+#R2
+print(r2_score(y_test, y_pred))
+
+#MAE
+print(mean_absolute_error(y_test, y_pred))
+
+#RMSE
+print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+#RMSLE
+print(rmsle(y_test, y_pred))
+
+
+# # Grid search
+
+# In[53]:
+
+
+from sklearn.model_selection import GridSearchCV
+
+
+X = Timeseries_Stationsplein.iloc[:, 10:58]
+y = Timeseries_Stationsplein.Incoming
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3, shuffle=False)
+
+param_grid = {
+    'bootstrap': [True],
+    'max_depth': [80, 100],
+    'max_features': [20, 30, 35],
+    'min_samples_leaf': [3, 4, 5],
+    'min_samples_split': [8, 10, 12],
+    'n_estimators': [100, 500, 1000]
+}
+
+# Create model
+rf = RandomForestRegressor()
+
+#perform the actual grid search
+grid_search = GridSearchCV(estimator = rf, param_grid = param_grid, 
+                          cv = 3, n_jobs = -1, verbose = 2)
+
+grid_search.fit(X_train, y_train)
+
+grid_search.best_params_
+
+
+# # Looking for most important features: 
+
+# In[15]:
+
+
+# shared bicycles during non-peak hours
+X = Timeseries_OV_Jaarbeursplein_nonpeak.iloc[:, 10:58]
+y = Timeseries_OV_Jaarbeursplein_nonpeak.Rentals
+
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3)
+
+scaler = MinMaxScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+#fit data into RFR
+rf = RandomForestRegressor(n_estimators=1000, max_depth = 100, max_features = 20, min_samples_leaf= 3, min_samples_split = 8, bootstrap = 'true')
+rf.fit(X_train_scaled, y_train)
+
+X_test_scaled = scaler.transform(X_test)
+
+#predict
+y_pred = rf.predict(X_test_scaled)
+
+#best features
+#print(rf.feature_importances_)
+
+
+import pandas as pd
+feature_importances = pd.DataFrame(rf.feature_importances_,
+                                   index = X_train.columns,
+                                    columns=['importance']).sort_values('importance', ascending=False)
+print(feature_importances)
+
+
+# In[ ]:
+
+
+# shared bicycles during peak hours
+X = Timeseries_OV_Jaarbeursplein_peak.iloc[:, 10:58]
+y = Timeseries_OV_Jaarbeursplein_peak.Rentals
+
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666, test_size=0.3)
+
+scaler = MinMaxScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+
+#fit data into RFR
+rf = RandomForestRegressor(n_estimators=1000, max_depth = 100, max_features = 20, min_samples_leaf= 3, min_samples_split = 8, bootstrap = 'true')
+rf.fit(X_train_scaled, y_train)
+
+X_test_scaled = scaler.transform(X_test)
+
+#predict
+y_pred = rf.predict(X_test_scaled)
+
+#best features
+#print(rf.feature_importances_)
+
+
+import pandas as pd
+feature_importances = pd.DataFrame(rf.feature_importances_,
+                                   index = X_train.columns,
+                                    columns=['importance']).sort_values('importance', ascending=False)
+print(feature_importances)
+
