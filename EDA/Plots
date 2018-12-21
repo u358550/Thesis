@@ -34,7 +34,9 @@ Returns_Jaarbeursplein_week$name <- "Returns"
 BSS_jaarbeursplein_week <- rbind(Rentals_jaarbeursplein_week, Returns_Jaarbeursplein_week)
 
 plot1 <- ggplot(data=BSS_jaarbeursplein_week, aes(x=Hour, y=sum , fill = name)) +
-  geom_bar(stat="identity", position = "dodge") + scale_y_continuous(name = "Number of bicycles") + theme(legend.title=element_blank())
+  ggtitle("Week")+
+  geom_bar(stat="identity", position = "dodge") + scale_y_continuous(name = "Number of bicycles")+
+  theme(legend.title=element_blank())
 plot1 <- ggplotly(plot1, width = 700, height = 250)
 plot1
 
@@ -53,6 +55,7 @@ Returns_Jaarbeursplein_weekend$name <- "Returns"
 BSS_jaarbeursplein_weekend <- rbind(Rentals_jaarbeursplein_weekend, Returns_Jaarbeursplein_weekend)
 
 plot2 <- ggplot(data=BSS_jaarbeursplein_weekend, aes(x=Hour, y=sum , fill = name)) +
+  ggtitle("Weekend")+
   geom_bar(stat="identity", position = "dodge") + scale_y_continuous(name = "Number of bicycles") + theme(legend.title=element_blank())
 plot2 <- ggplotly(plot2, width = 700, height = 250)
 plot2
@@ -75,6 +78,7 @@ Outgoing_Jaarbeursplein_week$name <- "Outgoing"
 jaarbeursplein_week <- rbind(Incoming_jaarbeursplein_week, Outgoing_Jaarbeursplein_week)
 
 plot3 <- ggplot(data=jaarbeursplein_week, aes(x=Hour, y=sum , fill = name)) +
+  ggtitle("Week")+
   geom_bar(stat="identity", position = "dodge") + scale_y_continuous(name = "Number of bicycles") + theme(legend.title=element_blank())
 plot3 <- ggplotly(plot3, width = 700, height = 250)
 plot3
@@ -92,6 +96,7 @@ Outgoing_Jaarbeursplein_weekend$name <- "Outgoing"
 jaarbeursplein_weekend <- rbind(Incoming_jaarbeursplein_weekend, Outgoing_Jaarbeursplein_weekend)
 
 plot4 <- ggplot(data=jaarbeursplein_weekend, aes(x=Hour, y=sum , fill = name)) +
+  ggtitle("Weekend")+
   geom_bar(stat="identity", position = "dodge") + scale_y_continuous(name = "Number of bicycles") + theme(legend.title=element_blank())
 plot4 <- ggplotly(plot4, width = 700, height = 250)
 plot4
@@ -126,10 +131,10 @@ plot5 <- ggplot(data=bframe, aes(x=Type, y=Number , fill = Storage)) +
 plot5
 
 # Read results 
-Results_incoming_stations <- read.csv(header = TRUE, sep = ";")
-Results_outgoing_stations <- read.csv(header = TRUE, sep = ";")
-Results_rentals_jaabeurs <- read.csv(header = TRUE, sep = ";")
-Results_returns_jaabeurs <- read.csv(header = TRUE, sep = ";")
+Results_incoming_stations <- read.csv("C:/Users/slendca/Dropbox/Afstudeerstage/Data-analyse/Results_Station_incoming.csv", header = TRUE, sep = ";")
+Results_outgoing_stations <- read.csv("C:/Users/slendca/Dropbox/Afstudeerstage/Data-analyse/Results_Station_Outgoing.csv", header = TRUE, sep = ";")
+Results_rentals_jaabeurs <- read.csv("C:/Users/slendca/Dropbox/Afstudeerstage/Data-analyse/Results_Jaarbeurs_rentals.csv", header = TRUE, sep = ";")
+Results_returns_jaabeurs <- read.csv("C:/Users/slendca/Dropbox/Afstudeerstage/Data-analyse/Results_Jaarbeurs_returns.csv", header = TRUE, sep = ";")
 
 # plot results
 plot6 <- ggplot(data=Results_incoming_stations, aes(x=Time, y=RMSLE, group=Model, colour=Model)) +
